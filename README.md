@@ -1,5 +1,6 @@
-# RSize
-`rsize` is a little command line utillity to resize jpg and pngs. Mainly I use this to resize wallpapers to 1080p.
+# rsize
+`rsize` is a little command line utillity to resize jpg and pngs concurrently.
+Used threads can be specified, see usage.
 
 ## Usage
 ```sh
@@ -13,5 +14,6 @@ FLAGS:
 OPTIONS:
     -h <height>          desired height [default: 1080]
     -s, --src <FILEs>    Resizes a single file or multiple by applying a directory [default: ./]
+    -t <threads>         maximum count of threads [default: 16]
     -w <width>           desired width [default: 1920]
 ```

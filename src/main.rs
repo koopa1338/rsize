@@ -5,8 +5,8 @@ use glob::glob;
 
 use image::{imageops::FilterType, open};
 
-fn resize_pattern(pattern: &str, width: u32, height: u32, filepath: &PathBuf) {
-    let pool = ThreadPool::new(30);
+fn resize_pattern(pattern: &str, width: u32, height: u32, filepath: &PathBuf, threads: usize) {
+    let pool = ThreadPool::new(threads);
     for entry in glob(&pattern).unwrap() {
             let tmpfile = entry.unwrap();
             let img = open(&tmpfile).unwrap();
@@ -23,7 +23,7 @@ fn resize_pattern(pattern: &str, width: u32, height: u32, filepath: &PathBuf) {
     }
 }
 
-fn resize(filepath: PathBuf, width: u32, height: u32) {
+fn resize(filepath: PathBuf, width: u32, height: u32, threads: usize) {
     if filepath.is_file() {
         let img = open(filepath.as_path()).unwrap();
         let resized_img = img.resize(width, height, FilterType::Lanczos3);
@@ -32,8 +32,8 @@ fn resize(filepath: PathBuf, width: u32, height: u32) {
     } else {
         let jpgs = format!("{}{}", filepath.as_path().to_str().unwrap(), "*.jpg");
         let pngs = format!("{}{}", filepath.as_path().to_str().unwrap(), "*.png");
-        resize_pattern(&jpgs, width, height, &filepath);
-        resize_pattern(&pngs, width, height, &filepath);
+        resize_pattern(&jpgs, width, height, &filepath, threads);
+        resize_pattern(&pngs, width, height, &filepath, threads);
     }
 }
 
@@ -59,12 +59,17 @@ fn main() {
             .takes_value(true)
             .help("desired height")
             .default_value("1080"))
+        .arg(Arg::with_name("threads")
+            .short("t")
+            .takes_value(true)
+            .help("maximum count of threads")
+            .default_value("16"))
         .get_matches();
 
-
         let filepath = PathBuf::from(matches.value_of("src").unwrap());
+        let threads: usize = matches.value_of("threads").unwrap().parse::<usize>().unwrap();
         let width: u32 = matches.value_of("width").unwrap().parse::<u32>().unwrap();
         let height: u32 = matches.value_of("height").unwrap().parse::<u32>().unwrap();
 
-        resize(filepath, width, height);
+        resize(filepath, width, height, threads);
 }
