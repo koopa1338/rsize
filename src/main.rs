@@ -51,8 +51,8 @@ fn resize(filepath: PathBuf, width: u32, height: u32) {
 }
 
 fn main() {
-    let matches = App::new("resizer")
-        .version("0.1")
+    let matches = App::new("rsize")
+        .version("0.1.0")
         .author("koopa1338 <koopa1338@yandex.com>")
         .about("resizes images")
         .arg(
