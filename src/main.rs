@@ -1,29 +1,25 @@
 use clap::{App, Arg};
 use glob::glob;
 use image::{imageops::FilterType, open};
+use rayon::prelude::*;
 use std::path::{Path, PathBuf};
-use threadpool::ThreadPool;
 
-fn resize_images(paths: &[PathBuf], width: u32, height: u32, filepath: &Path, threads: usize) {
-    let pool = ThreadPool::new(threads);
-    for p in paths {
-        let tmp = p.clone();
-        let img_path = filepath.to_owned().as_path().join(&tmp.as_path());
+fn resize_images(paths: &[PathBuf], width: u32, height: u32, filepath: &Path) {
+    paths.into_par_iter().for_each( |p| {
+        let img_path = filepath.to_owned().as_path().join(&p.as_path());
         // only resize if the desired width is different
-        let img = open(&tmp.as_path()).unwrap();
+        let img = open(&p.as_path()).unwrap();
         let (dim_w, _) = img.to_rgb16().dimensions();
         if dim_w != width {
-            pool.execute(move || {
-                img.resize(width, height, FilterType::Lanczos3)
-                    .save(&img_path)
-                    .unwrap();
-                println!("Resized file {:?}", img_path);
-            });
+            img.resize(width, height, FilterType::Lanczos3)
+                .save(&img_path)
+                .unwrap();
+            println!("Resized file {:?}", img_path);
         }
-    }
+    });
 }
 
-fn resize(filepath: PathBuf, width: u32, height: u32, threads: usize) {
+fn resize(filepath: PathBuf, width: u32, height: u32) {
     if filepath.is_file() {
         let img = open(filepath.as_path()).unwrap();
         let resized_img = img.resize(width, height, FilterType::Lanczos3);
@@ -37,6 +33,7 @@ fn resize(filepath: PathBuf, width: u32, height: u32, threads: usize) {
             "*.png"
         ))
         .unwrap();
+
         for p in pngs {
             images.push(p.unwrap());
         }
@@ -49,7 +46,7 @@ fn resize(filepath: PathBuf, width: u32, height: u32, threads: usize) {
         for j in jpgs {
             images.push(j.unwrap());
         }
-        resize_images(&images, width, height, &filepath, threads);
+        resize_images(&images, width, height, &filepath);
     }
 }
 
@@ -81,23 +78,11 @@ fn main() {
                 .help("desired height")
                 .default_value("1080"),
         )
-        .arg(
-            Arg::with_name("threads")
-                .short("t")
-                .takes_value(true)
-                .help("maximum count of threads")
-                .default_value("16"),
-        )
         .get_matches();
 
     let filepath = PathBuf::from(matches.value_of("src").unwrap());
-    let threads: usize = matches
-        .value_of("threads")
-        .unwrap()
-        .parse::<usize>()
-        .unwrap();
     let width: u32 = matches.value_of("width").unwrap().parse::<u32>().unwrap();
     let height: u32 = matches.value_of("height").unwrap().parse::<u32>().unwrap();
 
-    resize(filepath, width, height, threads);
+    resize(filepath, width, height);
 }
