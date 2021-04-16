@@ -4,7 +4,6 @@ use image::{imageops::FilterType, open};
 use rayon::prelude::*;
 use std::path::PathBuf;
 
-
 fn resize(filepath: PathBuf, width: u32, height: u32, ignore_aspect: bool) {
     if filepath.is_file() {
         let img = open(filepath.as_path()).unwrap();
@@ -34,7 +33,7 @@ fn resize(filepath: PathBuf, width: u32, height: u32, ignore_aspect: bool) {
         }
 
         // resize images
-        images.into_par_iter().for_each( |p| {
+        images.into_par_iter().for_each(|p| {
             let img_path = filepath.to_owned().as_path().join(&p.as_path());
             let img = open(&p.as_path()).unwrap();
             let (dim_w, _) = img.to_rgb16().dimensions();
