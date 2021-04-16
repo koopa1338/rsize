@@ -7,9 +7,9 @@ use std::path::{Path, PathBuf};
 fn resize_images(paths: &[PathBuf], width: u32, height: u32, filepath: &Path) {
     paths.into_par_iter().for_each( |p| {
         let img_path = filepath.to_owned().as_path().join(&p.as_path());
-        // only resize if the desired width is different
         let img = open(&p.as_path()).unwrap();
         let (dim_w, _) = img.to_rgb16().dimensions();
+        // only resize if the desired width is different
         if dim_w != width {
             img.resize(width, height, FilterType::Lanczos3)
                 .save(&img_path)
