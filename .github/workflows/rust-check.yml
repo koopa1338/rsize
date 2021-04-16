@@ -1,0 +1,15 @@
+name: Rust Check
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Checks formatting
+        run: |
+          cargo fmt -- --check
+      - name: Linter
+        run: |
+          cargo clippy -- -Dwarnings
