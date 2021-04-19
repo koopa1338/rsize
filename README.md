@@ -17,7 +17,7 @@ USAGE:
 
 FLAGS:
         --help       Prints help information
-    -i               ignore the aspect ratio and resice exactly to the width and height
+    -i               ignore the aspect ratio and resize exactly to the width and height
     -V, --version    Prints version information
 
 OPTIONS:

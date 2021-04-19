@@ -80,7 +80,7 @@ fn main() {
             Arg::with_name("ignore-aspect")
                 .short("i")
                 .takes_value(false)
-                .help("ignore the aspect ratio and resice exactly to the width and height"),
+                .help("ignore the aspect ratio and resize exactly to the width and height"),
         )
         .get_matches();
 
