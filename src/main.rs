@@ -3,6 +3,62 @@ use image::{imageops::FilterType, open};
 use rayon::prelude::*;
 use std::{ffi::OsStr, fs::read_dir, path::PathBuf};
 
+struct Config {
+    src: PathBuf,
+    ignore_aspect: bool,
+    width: u32,
+    height: u32,
+}
+
+fn get_config() -> Config {
+    let matches = App::new("rsize")
+        .version("0.1.0")
+        .author("koopa1338 <koopa1338@yandex.com>")
+        .about("resizes images")
+        .arg(
+            Arg::with_name("src")
+                .short("s")
+                .long("src")
+                .value_name("FILEs")
+                .help("Resizes a single file or multiple by applying a directory")
+                .takes_value(true)
+                .default_value("./"),
+        )
+        .arg(
+            Arg::with_name("width")
+                .short("w")
+                .takes_value(true)
+                .help("desired width")
+                .default_value("1920"),
+        )
+        .arg(
+            Arg::with_name("height")
+                .short("h")
+                .takes_value(true)
+                .help("desired height")
+                .default_value("1080"),
+        )
+        .arg(
+            Arg::with_name("ignore-aspect")
+                .short("i")
+                .takes_value(false)
+                .help("ignore the aspect ratio and resize exactly to the width and height"),
+        )
+        .get_matches();
+
+    let src = PathBuf::from(matches.value_of("src").unwrap());
+    let ignore_aspect: bool = matches.is_present("ignore-aspect");
+    let width: u32 = matches.value_of("width").unwrap().parse::<u32>().unwrap();
+    let height: u32 = matches.value_of("height").unwrap().parse::<u32>().unwrap();
+
+    Config {
+        src,
+        ignore_aspect,
+        width,
+        height,
+    }
+}
+
 fn resize(filepath: PathBuf, width: u32, height: u32, ignore_aspect: bool) {
     if filepath.is_file() {
         let img = open(filepath.as_path()).unwrap();
@@ -49,45 +105,6 @@ fn resize(filepath: PathBuf, width: u32, height: u32, ignore_aspect: bool) {
 }
 
 fn main() {
-    let matches = App::new("rsize")
-        .version("0.1.0")
-        .author("koopa1338 <koopa1338@yandex.com>")
-        .about("resizes images")
-        .arg(
-            Arg::with_name("src")
-                .short("s")
-                .long("src")
-                .value_name("FILEs")
-                .help("Resizes a single file or multiple by applying a directory")
-                .takes_value(true)
-                .default_value("./"),
-        )
-        .arg(
-            Arg::with_name("width")
-                .short("w")
-                .takes_value(true)
-                .help("desired width")
-                .default_value("1920"),
-        )
-        .arg(
-            Arg::with_name("height")
-                .short("h")
-                .takes_value(true)
-                .help("desired height")
-                .default_value("1080"),
-        )
-        .arg(
-            Arg::with_name("ignore-aspect")
-                .short("i")
-                .takes_value(false)
-                .help("ignore the aspect ratio and resize exactly to the width and height"),
-        )
-        .get_matches();
-
-    let filepath = PathBuf::from(matches.value_of("src").unwrap());
-    let ignore_aspect: bool = matches.is_present("ignore-aspect");
-    let width: u32 = matches.value_of("width").unwrap().parse::<u32>().unwrap();
-    let height: u32 = matches.value_of("height").unwrap().parse::<u32>().unwrap();
-
-    resize(filepath, width, height, ignore_aspect);
+    let config = get_config();
+    resize(config.src, config.width, config.height, config.ignore_aspect);
 }
