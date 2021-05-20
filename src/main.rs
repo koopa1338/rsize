@@ -1,7 +1,24 @@
 use clap::{App, Arg};
 use image::{imageops::FilterType, open};
 use rayon::prelude::*;
-use std::{ffi::OsStr, fs::read_dir, path::PathBuf};
+use std::{ffi::OsStr, fs::read_dir, path::PathBuf, fmt, error::Error, num::ParseIntError};
+
+#[derive(Debug)]
+struct ConfigErr {}
+
+impl fmt::Display for ConfigErr  {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", "Configuration/Arguments not valid")
+    }
+}
+
+impl Error for ConfigErr {}
+
+impl From<ParseIntError> for ConfigErr {
+    fn from(_error: ParseIntError) -> Self {
+        ConfigErr {}
+    }
+}
 
 struct Config {
     src: PathBuf,
@@ -10,7 +27,7 @@ struct Config {
     height: u32,
 }
 
-fn get_config() -> Config {
+fn get_config() -> Result<Config, ConfigErr> {
     let matches = App::new("rsize")
         .version("0.1.0")
         .author("koopa1338 <koopa1338@yandex.com>")
@@ -48,15 +65,15 @@ fn get_config() -> Config {
 
     let src = PathBuf::from(matches.value_of("src").unwrap());
     let ignore_aspect: bool = matches.is_present("ignore-aspect");
-    let width: u32 = matches.value_of("width").unwrap().parse::<u32>().unwrap();
-    let height: u32 = matches.value_of("height").unwrap().parse::<u32>().unwrap();
+    let width: u32 = matches.value_of("width").unwrap().parse::<u32>()?;
+    let height: u32 = matches.value_of("height").unwrap().parse::<u32>()?;
 
-    Config {
+    Ok(Config {
         src,
         ignore_aspect,
         width,
         height,
-    }
+    })
 }
 
 fn resize(filepath: PathBuf, width: u32, height: u32, ignore_aspect: bool) {
@@ -104,7 +121,8 @@ fn resize(filepath: PathBuf, width: u32, height: u32, ignore_aspect: bool) {
     }
 }
 
-fn main() {
-    let config = get_config();
+fn main() -> Result<(), ConfigErr> {
+    let config = get_config()?;
     resize(config.src, config.width, config.height, config.ignore_aspect);
+    Ok(())
 }
