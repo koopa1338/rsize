@@ -8,7 +8,7 @@ struct ConfigErr {}
 
 impl fmt::Display for ConfigErr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", "Configuration/Arguments not valid")
+        write!(f, "Configuration/Arguments not valid")
     }
 }
 
