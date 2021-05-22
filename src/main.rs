@@ -1,12 +1,12 @@
 use clap::{App, Arg};
 use image::{imageops::FilterType, open};
 use rayon::prelude::*;
-use std::{ffi::OsStr, fs::read_dir, path::PathBuf, fmt, error::Error, num::ParseIntError};
+use std::{error::Error, ffi::OsStr, fmt, fs::read_dir, num::ParseIntError, path::PathBuf};
 
 #[derive(Debug)]
 struct ConfigErr {}
 
-impl fmt::Display for ConfigErr  {
+impl fmt::Display for ConfigErr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", "Configuration/Arguments not valid")
     }
@@ -123,6 +123,11 @@ fn resize(filepath: PathBuf, width: u32, height: u32, ignore_aspect: bool) {
 
 fn main() -> Result<(), ConfigErr> {
     let config = get_config()?;
-    resize(config.src, config.width, config.height, config.ignore_aspect);
+    resize(
+        config.src,
+        config.width,
+        config.height,
+        config.ignore_aspect,
+    );
     Ok(())
 }
