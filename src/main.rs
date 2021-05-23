@@ -1,24 +1,10 @@
 use clap::{App, Arg};
 use image::{imageops::FilterType, open};
 use rayon::prelude::*;
-use std::{error::Error, ffi::OsStr, fmt, fs::read_dir, num::ParseIntError, path::PathBuf};
+use std::{ffi::OsStr, fs::read_dir, path::PathBuf};
 
-#[derive(Debug)]
-struct ConfigErr {}
-
-impl fmt::Display for ConfigErr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Configuration/Arguments not valid")
-    }
-}
-
-impl Error for ConfigErr {}
-
-impl From<ParseIntError> for ConfigErr {
-    fn from(_error: ParseIntError) -> Self {
-        ConfigErr {}
-    }
-}
+mod conferror;
+use conferror::ConfigErr;
 
 struct Config {
     src: PathBuf,
@@ -63,10 +49,16 @@ fn get_config() -> Result<Config, ConfigErr> {
         )
         .get_matches();
 
-    let src = PathBuf::from(matches.value_of("src").unwrap());
+    let src = PathBuf::from(matches.value_of("src").ok_or(ConfigErr::EmptyVal)?);
     let ignore_aspect: bool = matches.is_present("ignore-aspect");
-    let width: u32 = matches.value_of("width").unwrap().parse::<u32>()?;
-    let height: u32 = matches.value_of("height").unwrap().parse::<u32>()?;
+    let width: u32 = matches
+        .value_of("width")
+        .ok_or(ConfigErr::EmptyVal)?
+        .parse::<u32>()?;
+    let height: u32 = matches
+        .value_of("height")
+        .ok_or(ConfigErr::EmptyVal)?
+        .parse::<u32>()?;
 
     Ok(Config {
         src,
