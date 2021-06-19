@@ -1,6 +1,6 @@
 use clap::{App, Arg};
-use std::{ffi::OsStr, path::PathBuf};
 use rsize::resize;
+use std::{ffi::OsStr, path::PathBuf};
 
 mod conferror;
 use conferror::ConfigErr;

@@ -1,6 +1,6 @@
 use image::{imageops::FilterType, open};
-use std::{ffi::OsStr, fs::read_dir, path::PathBuf};
 use rayon::prelude::*;
+use std::{ffi::OsStr, fs::read_dir, path::PathBuf};
 
 pub fn resize(filepath: PathBuf, width: u32, height: u32, ignore_aspect: bool) {
     if filepath.is_file() {
