@@ -14,6 +14,7 @@ struct Config {
 }
 
 fn get_config() -> Result<Config, ConfigErr> {
+    let current_dir = OsStr::new(".").to_str().unwrap();
     let matches = App::new("rsize")
         .version("0.1.0")
         .author("koopa1338 <koopa1338@yandex.com>")
@@ -25,7 +26,7 @@ fn get_config() -> Result<Config, ConfigErr> {
                 .value_name("FILEs")
                 .help("Resizes a single file or multiple by applying a directory")
                 .takes_value(true)
-                .default_value("./"),
+                .default_value(current_dir),
         )
         .arg(
             Arg::with_name("width")
@@ -49,7 +50,7 @@ fn get_config() -> Result<Config, ConfigErr> {
         )
         .get_matches();
 
-    let src = PathBuf::from(matches.value_of("src").ok_or(ConfigErr::EmptyVal)?);
+    let src = PathBuf::from(matches.value_of("src").ok_or(current_dir).unwrap());
     let ignore_aspect: bool = matches.is_present("ignore-aspect");
     let width: u32 = matches
         .value_of("width")
