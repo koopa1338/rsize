@@ -8,3 +8,7 @@ edition = "2018"
 clap = "2.33.3"
 image = "0.23.14"
 rayon = "1.5.0"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
