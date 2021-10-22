@@ -2,7 +2,7 @@
 name = "rsize"
 version = "0.1.1"
 authors = ["koopa1338 <sinner1991@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 clap = "2.33.3"
