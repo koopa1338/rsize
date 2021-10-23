@@ -1,4 +1,7 @@
-use clap::{App, Arg};
+#[macro_use]
+extern crate clap;
+
+use clap::App;
 use rsize::resize;
 use std::{env::current_dir, path::PathBuf};
 
@@ -14,40 +17,8 @@ struct Config {
 
 fn get_config() -> Result<Config, ConfigErr> {
     let current_dir = current_dir().unwrap();
-    let matches = App::new("rsize")
-        .version("0.1.0")
-        .author("koopa1338 <koopa1338@yandex.com>")
-        .about("resizes images")
-        .arg(
-            Arg::with_name("src")
-                .short("s")
-                .long("src")
-                .value_name("FILEs")
-                .help("Resizes a single file or multiple by applying a directory")
-                .takes_value(true)
-                .default_value(current_dir.to_str().unwrap()),
-        )
-        .arg(
-            Arg::with_name("width")
-                .short("w")
-                .takes_value(true)
-                .help("desired width")
-                .default_value("1920"),
-        )
-        .arg(
-            Arg::with_name("height")
-                .short("h")
-                .takes_value(true)
-                .help("desired height")
-                .default_value("1080"),
-        )
-        .arg(
-            Arg::with_name("ignore-aspect")
-                .short("i")
-                .takes_value(false)
-                .help("ignore the aspect ratio and resize exactly to the width and height"),
-        )
-        .get_matches();
+    let yaml = load_yaml!("cli.yml");
+    let matches = App::from_yaml(yaml).get_matches();
 
     let src = PathBuf::from(matches.value_of("src").ok_or(&current_dir).unwrap());
     let ignore_aspect: bool = matches.is_present("ignore-aspect");

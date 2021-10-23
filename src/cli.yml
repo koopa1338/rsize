@@ -1,0 +1,29 @@
+name: rsize
+version: "0.1.0"
+author: koopa1338 <koopa1338@yandex.com>
+about: resizes images
+args:
+    - src:
+        short: s
+        long: src
+        value_name: FILEs
+        help: Resizes a single file or multiple by applying a directory
+        takes_value: true
+        default_value: "./"
+    - width:
+        short: w
+        long: width
+        takes_value: true
+        help: desired width
+        default_value: "1920"
+    - height:
+        short: h
+        long: height
+        takes_value: true
+        help: desired height
+        default_value: "1080"
+    - ignore-aspect:
+        short: i
+        long: ignore-aspect
+        takes_value: false
+        help: ignore the aspect ratio and resize exactly to the width and height
