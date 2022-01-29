@@ -1,6 +1,8 @@
 use image::{imageops::FilterType, open};
 use rayon::prelude::*;
-use std::{ffi::OsStr, fs::read_dir, path::PathBuf};
+use std::{fs::read_dir, path::PathBuf};
+
+const EXTENSIONS: [&str; 2] = ["png", "jpg"];
 
 pub fn resize(filepath: PathBuf, width: u32, height: u32, ignore_aspect: bool) {
     if filepath.is_file() {
@@ -21,29 +23,28 @@ fn resize_all(filepath: PathBuf, width: u32, height: u32, ignore_aspect: bool) {
         .map(|e| e.path())
         .collect::<Vec<PathBuf>>();
 
-    let png = OsStr::new("png");
-    let jpg = OsStr::new("jpg");
-
     all_files.into_par_iter().for_each(|p| {
         if p.is_file() {
-            if let Some(ext) = p.as_path().extension() {
-                if ext.eq(png) || ext.eq(jpg) {
-                    let img_path = filepath.to_owned().as_path().join(&p.as_path());
-                    let img = open(&p.as_path()).unwrap();
-                    let (dim_w, _) = img.to_rgb16().dimensions();
+            if let Some(extension) = p.as_path().extension() {
+                if let Some(ext) = extension.to_str() {
+                    if EXTENSIONS.contains(&ext) {
+                        let img_path = filepath.to_owned().as_path().join(&p.as_path());
+                        let img = open(&p.as_path()).unwrap();
+                        let (dim_w, _) = img.to_rgb16().dimensions();
 
-                    // only resize if the desired width is different
-                    if dim_w != width {
-                        if ignore_aspect {
-                            img.resize_exact(width, height, FilterType::Lanczos3)
-                                .save(&img_path)
-                                .unwrap();
-                        } else {
-                            img.resize(width, height, FilterType::Lanczos3)
-                                .save(&img_path)
-                                .unwrap();
+                        // only resize if the desired width is different
+                        if dim_w != width {
+                            if ignore_aspect {
+                                img.resize_exact(width, height, FilterType::Lanczos3)
+                                    .save(&img_path)
+                                    .unwrap();
+                            } else {
+                                img.resize(width, height, FilterType::Lanczos3)
+                                    .save(&img_path)
+                                    .unwrap();
+                            }
+                            println!("Resized file {:?}", img_path);
                         }
-                        println!("Resized file {:?}", img_path);
                     }
                 }
             }
