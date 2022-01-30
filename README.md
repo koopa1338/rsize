@@ -13,15 +13,14 @@ hardware.
 ## Usage
 ```sh
 USAGE:
-    rsize [FLAGS] [OPTIONS]
-
-FLAGS:
-        --help       Prints help information
-    -i               ignore the aspect ratio and resize exactly to the width and height
-    -V, --version    Prints version information
+    rsize [OPTIONS]
 
 OPTIONS:
-    -h <height>          desired height [default: 1080]
-    -s, --src <FILEs>    Resizes a single file or multiple by applying a directory [default: ./]
-    -w <width>           desired width [default: 1920]
+    -h, --help               Print help information
+        --height <HEIGHT>    [default: 1080]
+    -i, --ignore-aspect
+    -r, --recursive
+    -s, --src <SRC>          [default: ./]
+    -V, --version            Print version information
+        --width <WIDTH>      [default: 1920]
 ```
