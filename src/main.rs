@@ -2,8 +2,7 @@ use clap::Parser;
 
 use rsize::{resize, Config};
 
-fn main() -> Result<(), String> {
+fn main() {
     let config = Config::parse();
     resize(config);
-    Ok(())
 }
