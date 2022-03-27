@@ -1,5 +1,5 @@
 use image::{imageops::FilterType, open};
-use rayon::prelude::*;
+// use rayon::prelude::*;
 use std::{
     fs::read_dir,
     path::{Path, PathBuf},
@@ -7,7 +7,7 @@ use std::{
 
 use clap::Parser;
 
-const EXTENSIONS: [&str; 3] = ["png", "jpg", "jpeg"];
+const EXTENSIONS: [&str; 2] = ["png", "jpg"];
 
 #[derive(Debug, Clone, Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -30,29 +30,39 @@ fn resize_file(
     height: u32,
     ignore_aspect: bool,
 ) {
-    let img = open(&path).unwrap_or_else(|_| panic!("Error while saving resized image {:?}", path));
-    let (dim_w, _) = img.to_rgb16().dimensions();
+    println!("check file: {path:?}");
+    let img = open(&path).unwrap_or_else(|_| panic!("Error opening image {path:?}"));
+    let dim_w = img.width();
 
     // only resize if the desired width is different
     if dim_w != width {
         if ignore_aspect {
             img.resize_exact(width, height, FilterType::Lanczos3)
                 .save(&path)
-                .unwrap_or_else(|_| panic!("Error while saving resized image {:?}", path));
+                .unwrap_or_else(|_| {
+                    panic!("Error while saving resized image {path:?} (ignoring aspect ratio)")
+                });
         } else {
             img.resize(width, height, FilterType::Lanczos3)
                 .save(&path)
-                .unwrap_or_else(|_| panic!("Error while saving resized image {:?}", path));
+                .unwrap_or_else(|_| {
+                    panic!("Error while saving resized image {path:?} (keeping aspect ratio)")
+                });
         }
-        println!("Resized file {:?}", path);
+        println!("Resized file {path:?}");
     }
 }
 
 pub fn resize(config: Config) {
     if config.src.is_file() {
-        let filepath = config.src.as_path();
-        resize_file(filepath, config.width, config.height, config.ignore_aspect);
-    } else {
+        resize_file(
+            &config.src,
+            config.width,
+            config.height,
+            config.ignore_aspect,
+        );
+    }
+    if config.src.is_dir() {
         resize_all(
             config.src,
             config.width,
@@ -71,26 +81,35 @@ fn resize_all(
     recursive: bool,
 ) {
     //get all files as PathBuf in a vec
-    let all_files = read_dir(&filepath)
-        .unwrap_or_else(|_| panic!("couldn't read souce directory {:?}", filepath))
+    let mut all_dirs: Vec<PathBuf> = Vec::new();
+    let all_files: Vec<PathBuf> = read_dir(&filepath)
+        .unwrap_or_else(|_| panic!("couldn't read souce directory {filepath:?}"))
         .filter_map(|e| e.ok())
         .map(|e| e.path())
         .filter(|f| {
-            if let Some(extension) = f.as_path().extension() {
+            if let Some(extension) = f.extension() {
                 if let Some(ext) = extension.to_str() {
                     return EXTENSIONS.contains(&ext);
                 }
+            };
+            if f.is_dir() && recursive {
+                all_dirs.push(f.to_path_buf());
             }
-            // do not filter directories as we might resize recursively
-            f.is_dir()
+            false
         })
-        .collect::<Vec<PathBuf>>();
+        .collect();
 
-    all_files.into_par_iter().for_each(|p| {
+    // TODO: debug why rayons par_iter doesn't work here. It gets stuck after spawning 10 to 13
+    // threads.
+    all_files.iter().for_each(|p| {
         if p.is_file() {
-            resize_file(p.as_path(), width, height, ignore_aspect);
-        } else if recursive {
-            resize_all(p.as_path(), width, height, ignore_aspect, recursive);
+            resize_file(p, width, height, ignore_aspect);
         }
     });
+    if recursive {
+        // TODO: if par iter works try to do this also in parallel if possible
+        for filepath in all_dirs {
+            resize_all(filepath, width, height, ignore_aspect, recursive);
+        }
+    }
 }
