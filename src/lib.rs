@@ -1,6 +1,7 @@
 use image::{imageops::FilterType, open};
 // use rayon::prelude::*;
 use std::{
+    fmt::Debug,
     fs::read_dir,
     path::{Path, PathBuf},
 };
@@ -24,12 +25,7 @@ pub struct Config {
     recursive: bool,
 }
 
-fn resize_file(
-    path: impl AsRef<Path> + std::fmt::Debug,
-    width: u32,
-    height: u32,
-    ignore_aspect: bool,
-) {
+fn resize_file(path: impl AsRef<Path> + Debug, width: u32, height: u32, ignore_aspect: bool) {
     println!("check file: {path:?}");
     let img = open(&path).unwrap_or_else(|_| panic!("Error opening image {path:?}"));
     let dim_w = img.width();
@@ -74,7 +70,7 @@ pub fn resize(config: Config) {
 }
 
 fn resize_all(
-    filepath: impl AsRef<Path> + std::fmt::Debug,
+    filepath: impl AsRef<Path> + Debug,
     width: u32,
     height: u32,
     ignore_aspect: bool,
