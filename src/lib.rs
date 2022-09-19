@@ -1,10 +1,6 @@
-use image::{imageops::FilterType, open};
-// use rayon::prelude::*;
-use std::{
-    fmt::Debug,
-    fs::read_dir,
-    path::{Path, PathBuf},
-};
+use image::{imageops::FilterType, open, DynamicImage};
+use rayon::prelude::*;
+use std::{fmt::Debug, fs::read_dir, path::PathBuf};
 
 use clap::Parser;
 
@@ -25,87 +21,98 @@ pub struct Config {
     recursive: bool,
 }
 
-fn resize_file(path: impl AsRef<Path> + Debug, width: u32, height: u32, ignore_aspect: bool) {
-    println!("check file: {path:?}");
-    let img = open(&path).unwrap_or_else(|_| panic!("Error opening image {path:?}"));
-    let dim_w = img.width();
+pub struct Resizer<'a> {
+    queue: Vec<DynamicImage>,
+    config: &'a Config,
+}
 
-    // only resize if the desired width is different
-    if dim_w != width {
-        if ignore_aspect {
-            img.resize_exact(width, height, FilterType::Lanczos3)
-                .save(&path)
+impl<'a> Resizer<'a> {
+    pub fn new(config: &'a Config) -> Self {
+        Self {
+            queue: Vec::new(),
+            config,
+        }
+    }
+    pub fn collect(&mut self) {
+        let mut all_dirs: Vec<PathBuf> = Vec::new();
+        self.queue = read_dir(self.src())
+            .unwrap_or_else(|_| panic!("couldn't read souce directory {:?}", self.src()))
+            .filter_map(|e| e.ok())
+            .map(|e| e.path())
+            .filter(|f| {
+                if let Some(extension) = f.extension() {
+                    if let Some(ext) = extension.to_str() {
+                        return EXTENSIONS.contains(&ext);
+                    }
+                };
+                if f.is_dir() && self.recursive() {
+                    all_dirs.push(f.to_path_buf());
+                }
+                false
+            })
+            .map(|f| open(f.as_path()).unwrap_or_else(|_| panic!("Error opening image {:?}", f)))
+            .collect::<Vec<DynamicImage>>();
+    }
+
+    pub fn resize(&mut self) {
+        if self.config.src.is_file() {
+            let img =
+                open(self.src()).unwrap_or_else(|_| panic!("Error opening image {:?}", self.src()));
+            self.resize_file(&img);
+        } else {
+            self.collect();
+            self.resize_all()
+        }
+    }
+
+    pub fn resize_file(&self, img: &DynamicImage) {
+        if img.width() == self.width() && img.height() == self.height() {
+            return;
+        };
+
+        // only resize if the desired width is different
+        if self.ignore_aspect() {
+            img.resize_exact(self.width(), self.height(), FilterType::Lanczos3)
+                .save(self.src())
                 .unwrap_or_else(|_| {
-                    panic!("Error while saving resized image {path:?} (ignoring aspect ratio)")
+                    panic!(
+                        "Error while saving resized image {:?} (ignoring aspect ratio)",
+                        self.src()
+                    )
                 });
         } else {
-            img.resize(width, height, FilterType::Lanczos3)
-                .save(&path)
+            img.resize(self.width(), self.height(), FilterType::Lanczos3)
+                .save(&self.src())
                 .unwrap_or_else(|_| {
-                    panic!("Error while saving resized image {path:?} (keeping aspect ratio)")
+                    panic!(
+                        "Error while saving resized image {:?} (keeping aspect ratio)",
+                        self.src()
+                    )
                 });
         }
-        println!("Resized file {path:?}");
+        println!("Resized file {:?}", self.src());
     }
-}
 
-pub fn resize(config: Config) {
-    if config.src.is_file() {
-        resize_file(
-            &config.src,
-            config.width,
-            config.height,
-            config.ignore_aspect,
-        );
+    pub fn resize_all(&self) {
+        self.queue.par_iter().for_each(|f| {
+            self.resize_file(f);
+        });
     }
-    if config.src.is_dir() {
-        resize_all(
-            config.src,
-            config.width,
-            config.height,
-            config.ignore_aspect,
-            config.recursive,
-        );
+
+    const fn src(&self) -> &PathBuf {
+        &self.config.src
     }
-}
 
-fn resize_all(
-    filepath: impl AsRef<Path> + Debug,
-    width: u32,
-    height: u32,
-    ignore_aspect: bool,
-    recursive: bool,
-) {
-    //get all files as PathBuf in a vec
-    let mut all_dirs: Vec<PathBuf> = Vec::new();
-    let all_files: Vec<PathBuf> = read_dir(&filepath)
-        .unwrap_or_else(|_| panic!("couldn't read souce directory {filepath:?}"))
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .filter(|f| {
-            if let Some(extension) = f.extension() {
-                if let Some(ext) = extension.to_str() {
-                    return EXTENSIONS.contains(&ext);
-                }
-            };
-            if f.is_dir() && recursive {
-                all_dirs.push(f.to_path_buf());
-            }
-            false
-        })
-        .collect();
-
-    // TODO: debug why rayons par_iter doesn't work here. It gets stuck after spawning 10 to 13
-    // threads.
-    all_files.iter().for_each(|p| {
-        if p.is_file() {
-            resize_file(p, width, height, ignore_aspect);
-        }
-    });
-    if recursive {
-        // TODO: if par iter works try to do this also in parallel if possible
-        for filepath in all_dirs {
-            resize_all(filepath, width, height, ignore_aspect, recursive);
-        }
+    const fn width(&self) -> u32 {
+        self.config.width
+    }
+    const fn height(&self) -> u32 {
+        self.config.height
+    }
+    const fn ignore_aspect(&self) -> bool {
+        self.config.ignore_aspect
+    }
+    const fn recursive(&self) -> bool {
+        self.config.recursive
     }
 }
