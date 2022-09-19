@@ -1,11 +1,14 @@
 use image::{imageops::FilterType, open, DynamicImage};
 use rayon::prelude::*;
-use std::{fmt::Debug, fs::read_dir, path::PathBuf};
+use std::{
+    fmt::Debug,
+    fs::read_dir,
+    path::{Path, PathBuf},
+};
 
 use clap::Parser;
 
 const EXTENSIONS: [&str; 2] = ["png", "jpg"];
-
 #[derive(Debug, Clone, Parser)]
 #[clap(author, version, about, long_about = None)]
 pub struct Config {
@@ -33,9 +36,9 @@ impl<'a> Resizer<'a> {
             config,
         }
     }
-    pub fn collect(&mut self) {
+    pub fn collect(&mut self, path: impl AsRef<Path>) {
         let mut all_dirs: Vec<PathBuf> = Vec::new();
-        self.queue = read_dir(self.src())
+        let mut images = read_dir(path)
             .unwrap_or_else(|_| panic!("couldn't read souce directory {:?}", self.src()))
             .filter_map(|e| e.ok())
             .map(|e| e.path())
@@ -52,15 +55,21 @@ impl<'a> Resizer<'a> {
             })
             .map(|f| open(f.as_path()).unwrap_or_else(|_| panic!("Error opening image {:?}", f)))
             .collect::<Vec<DynamicImage>>();
+        self.queue.append(&mut images);
+        if self.recursive() {
+            for subpath in all_dirs {
+                self.collect(subpath);
+            }
+        }
     }
 
     pub fn resize(&mut self) {
-        if self.config.src.is_file() {
+        if self.src().is_file() {
             let img =
                 open(self.src()).unwrap_or_else(|_| panic!("Error opening image {:?}", self.src()));
             self.resize_file(&img);
         } else {
-            self.collect();
+            self.collect(self.src().clone());
             self.resize_all()
         }
     }
@@ -94,9 +103,7 @@ impl<'a> Resizer<'a> {
     }
 
     pub fn resize_all(&self) {
-        self.queue.par_iter().for_each(|f| {
-            self.resize_file(f);
-        });
+        self.queue.par_iter().for_each(|f| self.resize_file(f));
     }
 
     const fn src(&self) -> &PathBuf {
