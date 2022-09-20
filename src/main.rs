@@ -1,8 +1,9 @@
 use clap::Parser;
 
-use rsize::{resize, Config};
+use rsize::{Config, Resizer};
 
 fn main() {
     let config = Config::parse();
-    resize(config);
+    let mut queue = Resizer::new(&config);
+    queue.resize();
 }
