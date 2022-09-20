@@ -54,7 +54,10 @@ impl<'a> Resizer<'a> {
                 false
             })
             .collect::<Vec<PathBuf>>();
-        self.queue.append(&mut images);
+        if !images.is_empty() {
+            self.queue.append(&mut images);
+        }
+
         if self.recursive() {
             for subpath in all_dirs {
                 self.collect(&subpath);
@@ -73,32 +76,26 @@ impl<'a> Resizer<'a> {
 
     pub fn resize_file(&self, img_path: &Path) {
         let img = open(img_path).unwrap_or_else(|_| panic!("Error opening image {img_path:?}"));
-        println!("Checked file {img_path:?}");
         if img.width() == self.width() {
             return;
         };
 
         // only resize if the desired width is different
         if self.ignore_aspect() {
+            println!("Resized image {img_path:?}");
             img.resize_exact(self.width(), self.height(), FilterType::Lanczos3)
                 .save(img_path)
                 .unwrap_or_else(|_| {
-                    panic!(
-                        "Error while saving resized image {:?} (ignoring aspect ratio)",
-                        self.src()
-                    )
+                    panic!("Error while saving resized image {img_path:?} (ignoring aspect ratio)")
                 });
         } else {
             img.resize(self.width(), self.height(), FilterType::Lanczos3)
                 .save(img_path)
                 .unwrap_or_else(|_| {
-                    panic!(
-                        "Error while saving resized image {:?} (keeping aspect ratio)",
-                        self.src()
-                    )
+                    panic!("Error while saving resized image {img_path:?} (keeping aspect ratio)",)
                 });
         }
-        println!("Resized file {:?}", self.src());
+        println!("Resized image {img_path:?}");
     }
 
     pub fn resize_all(&self) {
