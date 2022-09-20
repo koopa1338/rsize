@@ -65,6 +65,10 @@ impl<'a> Resizer<'a> {
             self.queue.append(&mut images);
         }
 
+        self.collect_recursive(all_dirs);
+    }
+
+    fn collect_recursive(&mut self, all_dirs: Vec<PathBuf>) {
         if self.recursive() {
             for subpath in all_dirs {
                 self.collect(&subpath);
@@ -95,19 +99,29 @@ impl<'a> Resizer<'a> {
 
         // only resize if the desired width is different
         if self.ignore_aspect() {
-            println!("Resized image {img_path:?}");
-            img.resize_exact(self.width(), self.height(), FilterType::Lanczos3)
-                .save(img_path)
-                .unwrap_or_else(|_| {
-                    panic!("Error while saving resized image {img_path:?} (ignoring aspect ratio)")
-                });
+            self.resize_exact(&img, img_path);
         } else {
-            img.resize(self.width(), self.height(), FilterType::Lanczos3)
-                .save(img_path)
-                .unwrap_or_else(|_| {
-                    panic!("Error while saving resized image {img_path:?} (keeping aspect ratio)",)
-                });
+            self.resize_ratio(&img, img_path)
         }
+    }
+
+    #[doc(hidden)]
+    fn resize_ratio(&self, img: &image::DynamicImage, img_path: &Path) {
+        img.resize(self.width(), self.height(), FilterType::Lanczos3)
+            .save(img_path)
+            .unwrap_or_else(|_| {
+                panic!("Error while saving resized image {img_path:?} (keeping aspect ratio)",)
+            });
+        println!("Resized image {img_path:?}");
+    }
+
+    #[doc(hidden)]
+    fn resize_exact(&self, img: &image::DynamicImage, img_path: &Path) {
+        img.resize_exact(self.width(), self.height(), FilterType::Lanczos3)
+            .save(img_path)
+            .unwrap_or_else(|_| {
+                panic!("Error while saving resized image {img_path:?} (ignoring aspect ratio)")
+            });
         println!("Resized image {img_path:?}");
     }
 
