@@ -1,4 +1,4 @@
-use image::{imageops::FilterType, open, DynamicImage};
+use image::{imageops::FilterType, open};
 use rayon::prelude::*;
 use std::{
     fmt::Debug,
@@ -25,7 +25,7 @@ pub struct Config {
 }
 
 pub struct Resizer<'a> {
-    queue: Vec<DynamicImage>,
+    queue: Vec<PathBuf>,
     config: &'a Config,
 }
 
@@ -36,10 +36,10 @@ impl<'a> Resizer<'a> {
             config,
         }
     }
-    pub fn collect(&mut self, path: impl AsRef<Path>) {
+    pub fn collect(&mut self, path: &Path) {
         let mut all_dirs: Vec<PathBuf> = Vec::new();
         let mut images = read_dir(path)
-            .unwrap_or_else(|_| panic!("couldn't read souce directory {:?}", self.src()))
+            .unwrap_or_else(|_| panic!("couldn't read souce directory {path:?}"))
             .filter_map(|e| e.ok())
             .map(|e| e.path())
             .filter(|f| {
@@ -53,36 +53,35 @@ impl<'a> Resizer<'a> {
                 }
                 false
             })
-            .map(|f| open(f.as_path()).unwrap_or_else(|_| panic!("Error opening image {:?}", f)))
-            .collect::<Vec<DynamicImage>>();
+            .collect::<Vec<PathBuf>>();
         self.queue.append(&mut images);
         if self.recursive() {
             for subpath in all_dirs {
-                self.collect(subpath);
+                self.collect(&subpath);
             }
         }
     }
 
     pub fn resize(&mut self) {
         if self.src().is_file() {
-            let img =
-                open(self.src()).unwrap_or_else(|_| panic!("Error opening image {:?}", self.src()));
-            self.resize_file(&img);
+            self.resize_file(self.src());
         } else {
-            self.collect(self.src().clone());
+            self.collect(&self.src().clone());
             self.resize_all()
         }
     }
 
-    pub fn resize_file(&self, img: &DynamicImage) {
-        if img.width() == self.width() && img.height() == self.height() {
+    pub fn resize_file(&self, img_path: &Path) {
+        let img = open(img_path).unwrap_or_else(|_| panic!("Error opening image {img_path:?}"));
+        println!("Checked file {img_path:?}");
+        if img.width() == self.width() {
             return;
         };
 
         // only resize if the desired width is different
         if self.ignore_aspect() {
             img.resize_exact(self.width(), self.height(), FilterType::Lanczos3)
-                .save(self.src())
+                .save(img_path)
                 .unwrap_or_else(|_| {
                     panic!(
                         "Error while saving resized image {:?} (ignoring aspect ratio)",
@@ -91,7 +90,7 @@ impl<'a> Resizer<'a> {
                 });
         } else {
             img.resize(self.width(), self.height(), FilterType::Lanczos3)
-                .save(&self.src())
+                .save(img_path)
                 .unwrap_or_else(|_| {
                     panic!(
                         "Error while saving resized image {:?} (keeping aspect ratio)",
