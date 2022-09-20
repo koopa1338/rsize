@@ -30,12 +30,19 @@ pub struct Resizer<'a> {
 }
 
 impl<'a> Resizer<'a> {
+    /// Creates a new [`Resizer`].
     pub fn new(config: &'a Config) -> Self {
         Self {
             queue: Vec::new(),
             config,
         }
     }
+
+    /// collects all image paths into a vec.
+    ///
+    /// # Panics
+    ///
+    /// Panics if a path couldn't be read
     pub fn collect(&mut self, path: &Path) {
         let mut all_dirs: Vec<PathBuf> = Vec::new();
         let mut images = read_dir(path)
@@ -65,6 +72,7 @@ impl<'a> Resizer<'a> {
         }
     }
 
+    /// Resizes the source image or all images of a directory
     pub fn resize(&mut self) {
         if self.src().is_file() {
             self.resize_file(self.src());
@@ -74,6 +82,11 @@ impl<'a> Resizer<'a> {
         }
     }
 
+    /// resizes a single file respecting given options.
+    ///
+    /// # Panics
+    ///
+    /// Panics if image couldn't be opended or resized.
     pub fn resize_file(&self, img_path: &Path) {
         let img = open(img_path).unwrap_or_else(|_| panic!("Error opening image {img_path:?}"));
         if img.width() == self.width() {
@@ -98,23 +111,32 @@ impl<'a> Resizer<'a> {
         println!("Resized image {img_path:?}");
     }
 
+    /// Resizes all images in the queue of the [`Resizer`]
     pub fn resize_all(&self) {
         self.queue.par_iter().for_each(|f| self.resize_file(f));
     }
 
+    /// Returns a reference to the src of the [`Resizer`].
     const fn src(&self) -> &PathBuf {
         &self.config.src
     }
 
+    /// Returns the desired width of the [`Resizer`].
     const fn width(&self) -> u32 {
         self.config.width
     }
+
+    /// Returns the desired height of the [`Resizer`].
     const fn height(&self) -> u32 {
         self.config.height
     }
+
+    /// Returns the ignore aspect option of the [`Resizer`].
     const fn ignore_aspect(&self) -> bool {
         self.config.ignore_aspect
     }
+
+    /// Returns the recursive option of this [`Resizer`].
     const fn recursive(&self) -> bool {
         self.config.recursive
     }
