@@ -1,28 +1,14 @@
 use image::{imageops::FilterType, open};
 use rayon::prelude::*;
 use std::{
-    fmt::Debug,
     fs::read_dir,
     path::{Path, PathBuf},
 };
 
-use clap::Parser;
+pub mod config;
+use config::Config;
 
 const EXTENSIONS: [&str; 2] = ["png", "jpg"];
-#[derive(Debug, Clone, Parser)]
-#[clap(author, version, about, long_about = None)]
-pub struct Config {
-    #[clap(long, short, default_value = "./", parse(from_os_str))]
-    src: PathBuf,
-    #[clap(long, short)]
-    ignore_aspect: bool,
-    #[clap(long, default_value_t = 1920u32)]
-    width: u32,
-    #[clap(long, default_value_t = 1080u32)]
-    height: u32,
-    #[clap(long, short)]
-    recursive: bool,
-}
 
 pub struct Resizer<'a> {
     queue: Vec<PathBuf>,
@@ -31,6 +17,7 @@ pub struct Resizer<'a> {
 
 impl<'a> Resizer<'a> {
     /// Creates a new [`Resizer`].
+    #[must_use]
     pub fn new(config: &'a Config) -> Self {
         Self {
             queue: Vec::new(),
@@ -47,7 +34,7 @@ impl<'a> Resizer<'a> {
         let mut all_dirs: Vec<PathBuf> = Vec::new();
         let mut images = read_dir(path)
             .unwrap_or_else(|_| panic!("couldn't read souce directory {path:?}"))
-            .filter_map(|e| e.ok())
+            .filter_map(Result::ok)
             .map(|e| e.path())
             .filter(|f| {
                 if let Some(extension) = f.extension() {
@@ -56,7 +43,7 @@ impl<'a> Resizer<'a> {
                     }
                 };
                 if f.is_dir() && self.recursive() {
-                    all_dirs.push(f.to_path_buf());
+                    all_dirs.push(f.clone());
                 }
                 false
             })
@@ -78,11 +65,12 @@ impl<'a> Resizer<'a> {
 
     /// Resizes the source image or all images of a directory
     pub fn resize(&mut self) {
-        if self.src().is_file() {
-            self.resize_file(self.src());
+        let src = self.src();
+        if src.is_file() {
+            self.resize_file(src);
         } else {
-            self.collect(&self.src().clone());
-            self.resize_all()
+            self.collect(&src.clone());
+            self.resize_all();
         }
     }
 
@@ -101,7 +89,7 @@ impl<'a> Resizer<'a> {
         if self.ignore_aspect() {
             self.resize_exact(&img, img_path);
         } else {
-            self.resize_ratio(&img, img_path)
+            self.resize_ratio(&img, img_path);
         }
     }
 

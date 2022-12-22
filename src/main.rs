@@ -1,6 +1,5 @@
 use clap::Parser;
-
-use rsize::{Config, Resizer};
+use rsize::{config::Config, Resizer};
 
 fn main() {
     let config = Config::parse();
