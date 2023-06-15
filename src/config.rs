@@ -5,7 +5,7 @@ use clap::Parser;
 #[derive(Debug, Clone, Parser)]
 #[clap(author, version, about, long_about = None)]
 pub struct Config {
-    #[clap(long, short, default_value = "./", parse(from_os_str))]
+    #[clap(long, short, default_value = "./")]
     pub src: PathBuf,
     #[clap(long, short)]
     pub ignore_aspect: bool,
